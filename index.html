@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3F黒物 実績進捗管理</title>
+<style>
+  :root{
+    --bg:#F4F6F8;
+    --surface:#FFFFFF;
+    --ink:#1B2430;
+    --ink-soft:#5B6472;
+    --line:#E1E5EA;
+    --primary:#1F4E78;
+    --primary-soft:#E7EEF4;
+    --good:#1E7B34;
+    --bad:#C0392B;
+    --warn:#B8790A;
+    --input-bg:#FFFDE7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px;}
+
+  header.top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:12px;flex-wrap:wrap;margin-bottom:10px;
+  }
+  header.top h1{
+    font-size:20px;font-weight:800;letter-spacing:.01em;margin:0 0 4px;
+    color:var(--primary);
+  }
+  header.top .sub{font-size:12.5px;color:var(--ink-soft);}
+  .today-pill{
+    background:var(--primary);color:#fff;font-size:12px;font-weight:700;
+    padding:6px 14px;border-radius:999px;white-space:nowrap;
+  }
+
+  .sync-bar{
+    display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  .sync-badge{
+    display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+    font-weight:700;font-size:11.5px;cursor:pointer;border:1px solid var(--line);background:#fff;
+  }
+  .sync-badge.ok{color:var(--good);border-color:var(--good);}
+  .sync-badge.err{color:var(--bad);border-color:var(--bad);}
+  .sync-badge.busy{color:var(--warn);border-color:var(--warn);}
+  .sync-badge.off{color:var(--ink-soft);}
+
+  /* summary cards */
+  .cards{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:10px;margin-bottom:22px;
+  }
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;position:relative;overflow:hidden;
+  }
+  .card.total{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset;}
+  .card .cat-name{font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+  .card .rate{font-size:26px;font-weight:800;line-height:1;margin-bottom:2px;}
+  .card .fig{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
+  .bar-track{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:8px;}
+  .bar-fill{height:100%;border-radius:999px;transition:width .3s ease;}
+  .card .remain{font-size:12.5px;font-weight:600;}
+  .status-good{color:var(--good);}
+  .status-bad{color:var(--bad);}
+
+  /* table */
+  .table-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin-bottom:20px;
+  }
+  .table-scroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:960px;font-size:13px;}
+  thead tr.date-row th{
+    background:var(--primary);color:#fff;font-weight:700;font-size:12.5px;
+    padding:8px 4px;text-align:center;border-left:1px solid rgba(255,255,255,.15);
+  }
+  thead tr.sub-row th{
+    background:#2E608A;color:#EAF1F7;font-weight:600;font-size:11px;
+    padding:5px 4px;text-align:center;border-left:1px solid rgba(255,255,255,.12);
+  }
+  th.cat-head, td.cat-cell{
+    position:sticky;left:0;background:var(--surface);z-index:2;
+    text-align:left;padding:10px 12px;font-weight:700;font-size:13px;
+    border-right:2px solid var(--line);white-space:nowrap;
+  }
+  thead th.cat-head{background:var(--primary);color:#fff;z-index:3;border-right:2px solid rgba(255,255,255,.25);}
+  tbody tr{border-top:1px solid var(--line);}
+  tbody tr.total-row{background:var(--primary-soft);font-weight:700;}
+  tbody tr.total-row td.cat-cell{background:var(--primary-soft);}
+  td{padding:6px 4px;text-align:center;}
+  td.tgt{color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  td.diff{font-weight:700;font-variant-numeric:tabular-nums;}
+  td.diff.pos{color:var(--good);}
+  td.diff.neg{color:var(--bad);}
+  input.act-input{
+    width:44px;padding:4px 2px;text-align:center;border:1px solid var(--line);
+    border-radius:6px;background:var(--input-bg);font-size:13px;font-variant-numeric:tabular-nums;
+    font-family:inherit;color:var(--ink);
+  }
+  input.act-input:focus{outline:2px solid var(--primary);outline-offset:1px;}
+  td.summary-cell{font-weight:700;background:#FAFBFC;}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);padding:10px 14px;border-top:1px solid var(--line);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .footer-note{font-size:11.5px;color:var(--ink-soft);text-align:right;margin-top:6px;}
+
+  @media (max-width:640px){
+    header.top h1{font-size:17px;}
+    .cards{grid-template-columns:repeat(2,1fr);}
+    .card .rate{font-size:21px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>3F黒物（イベント込）実績進捗管理</h1>
+      <div class="sub">SB総販・YM総販・BB・でんき　7/13(月)〜7/20(月・祝)</div>
+    </div>
+    <div class="today-pill">本日 7/16</div>
+  </header>
+
+  <div class="sync-bar">
+    <span class="sync-badge off" id="syncBadge" title="タップして再読込">読込中…</span>
+    <span id="syncNote"></span>
+  </div>
+
+  <div class="cards" id="cardsRoot"></div>
+
+  <div class="table-card">
+    <div class="table-scroll">
+      <table id="mainTable"></table>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--good)"></span>目標超過</span>
+      <span><span class="dot" style="background:var(--bad)"></span>目標未達</span>
+      <span><span class="dot" style="background:#FFF176;border:1px solid #ddd"></span>実績入力欄（タップして入力）</span>
+    </div>
+  </div>
+  <div class="footer-note">実績を入力すると、店舗内の他の端末にも共有されます。</div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   クラウド同期設定（JSONBin.io）
+   端末間でデータを共有するには、下の3つを設定してください。
+   1. https://jsonbin.io で無料アカウント作成
+   2. 「CREATE BIN」で中身を {"_init":"ok"} にして保存 → Bin ID をコピー
+   3. 「API KEYS」から Master Key（または対象ビンに read/update
+      権限を付けた Access Key）をコピー
+   4. 下の3行を書き換える
+   設定するまでは localStorage（この端末だけ）で動作します。
+═══════════════════════════════════════════════════════ */
+const CLOUD_ENABLED   = false;                      // 設定できたら true にする
+const JSONBIN_BIN_ID   = "ここにBIN_IDを貼る";
+const JSONBIN_KEY      = "ここにAPIキーを貼る";
+const CLOUD_KEY_HEADER = "X-Master-Key";            // Access Keyの場合は "X-Access-Key"
+
+const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_BIN_ID;
+const LOCAL_KEY = "jisseki-actuals-v1";
+
+const DATES = ["7/13","7/14","7/15","7/16","7/17","7/18","7/19","7/20"];
+const DOW   = ["月","火","水","木","金","土","日","月・祝"];
+const CATS  = ["SB総販","YM総販","BB","でんき"];
+
+const TARGETS = {
+  "SB総販": [4,3,3,3,5,11,11,10],
+  "YM総販": [5,4,4,4,5,11,12,10],
+  "BB":     [3,2,2,2,3,5,6,6],
+  "でんき":  [1,1,1,1,1,4,4,3],
+};
+
+// 初期実績（手書きメモより）。以降はローカル/クラウドの値が優先されます。
+const SEED_ACTUALS = {
+  "SB総販": [2,3,0,null,null,null,null,null],
+  "YM総販": [2,2,3,null,null,null,null,null],
+  "BB":     [3,1,0,null,null,null,null,null],
+  "でんき":  [2,2,0,null,null,null,null,null],
+};
+
+let actuals = null;
+let saveDebounce = null;
+
+function sum(arr){ return arr.reduce((a,b)=>a+(Number(b)||0),0); }
+function targetTotal(cat){ return sum(TARGETS[cat]); }
+function actualTotal(cat){ return sum(actuals[cat]); }
+function totalRowTargets(){ return DATES.map((_,i)=> CATS.reduce((s,c)=>s+TARGETS[c][i],0)); }
+function totalRowActuals(){ return DATES.map((_,i)=> CATS.reduce((s,c)=>s+(Number(actuals[c][i])||0),0)); }
+
+function fmtDiff(v){ return v>0 ? "+"+v : String(v); }
+function statusColor(rate){ if(rate>=1) return "good"; if(rate>=0.7) return "warn"; return "bad"; }
+
+function fillMissing(obj){
+  CATS.forEach(c=>{
+    if(!obj[c]) obj[c] = [...SEED_ACTUALS[c]];
+    while(obj[c].length < DATES.length) obj[c].push(null);
+  });
+  return obj;
+}
+
+/* ───────────── 同期バッジ ───────────── */
+function setBadge(state, text){
+  const el = document.getElementById("syncBadge");
+  el.className = "sync-badge " + state;
+  el.textContent = text;
+}
+
+/* ───────────── 読込 ───────────── */
+async function loadActuals(){
+  // まずローカルの値を仮に読んでおく（クラウド取得が遅い/失敗しても画面が出せるように）
+  let local = null;
+  try{
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if(raw) local = JSON.parse(raw);
+  }catch(e){ /* noop */ }
+
+  if(!CLOUD_ENABLED){
+    setBadge("off", "💾 この端末のみ");
+    actuals = fillMissing(local || JSON.parse(JSON.stringify(SEED_ACTUALS)));
+    return;
+  }
+
+  setBadge("busy", "☁️ 読込中…");
+  try{
+    const res = await fetch(JSONBIN_URL + "/latest", {
+      headers: { [CLOUD_KEY_HEADER]: JSONBIN_KEY }
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const remote = data && data.record ? data.record : null;
+    if(remote && remote.actuals){
+      actuals = fillMissing(remote.actuals);
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(actuals));
+      setBadge("ok", "☁️ 同期済み");
+    } else {
+      actuals = fillMissing(local || JSON.parse(JSON.stringify(SEED_ACTUALS)));
+      setBadge("ok", "☁️ 同期済み（初期化）");
+    }
+  }catch(err){
+    console.error("クラウド読込エラー", err);
+    actuals = fillMissing(local || JSON.parse(JSON.stringify(SEED_ACTUALS)));
+    setBadge("err", "⚠️ 同期エラー（この端末の保存を使用）");
+  }
+}
+
+/* ───────────── 保存 ───────────── */
+function persist(){
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(actuals));
+  if(!CLOUD_ENABLED) return;
+
+  clearTimeout(saveDebounce);
+  setBadge("busy", "☁️ 保存中…");
+  saveDebounce = setTimeout(async ()=>{
+    try{
+      const res = await fetch(JSONBIN_URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          [CLOUD_KEY_HEADER]: JSONBIN_KEY
+        },
+        body: JSON.stringify({ actuals: actuals })
+      });
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      setBadge("ok", "☁️ 同期済み");
+    }catch(err){
+      console.error("クラウド保存エラー", err);
+      setBadge("err", "⚠️ 保存失敗（この端末には保存済み）");
+    }
+  }, 800);
+}
+
+/* ───────────── 描画 ───────────── */
+function render(){
+  renderCards();
+  renderTable();
+}
+
+function renderCards(){
+  const root = document.getElementById("cardsRoot");
+  root.innerHTML = "";
+  const allCats = [...CATS, "商材ALL"];
+  allCats.forEach(cat=>{
+    let budget, actTotal;
+    if(cat === "商材ALL"){
+      budget = sum(totalRowTargets());
+      actTotal = sum(totalRowActuals());
+    } else {
+      budget = targetTotal(cat);
+      actTotal = actualTotal(cat);
+    }
+    const rate = budget>0 ? actTotal/budget : 0;
+    const remain = budget - actTotal;
+    const st = statusColor(rate);
+    const stColor = st==="good" ? "var(--good)" : st==="warn" ? "var(--warn)" : "var(--bad)";
+
+    const card = document.createElement("div");
+    card.className = "card" + (cat==="商材ALL" ? " total" : "");
+    card.innerHTML =
+      '<div class="cat-name">' + cat + '</div>' +
+      '<div class="rate" style="color:' + stColor + '">' + (rate*100).toFixed(1) + '%</div>' +
+      '<div class="fig">実績 ' + actTotal + ' / 予算 ' + budget + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + Math.min(rate*100,100) + '%;background:' + stColor + '"></div></div>' +
+      '<div class="remain ' + (remain>0?'status-bad':'status-good') + '">' +
+      (remain>0 ? ('残り必要 ' + remain + '件') : ('目標達成 (+' + (-remain) + '件)')) +
+      '</div>';
+    root.appendChild(card);
+  });
+}
+
+function renderTable(){
+  const table = document.getElementById("mainTable");
+  const rowsForTotal = totalRowTargets();
+  const actualsForTotal = totalRowActuals();
+
+  let html = "";
+  html += '<thead><tr class="date-row"><th class="cat-head" rowspan="2">カテゴリ</th>';
+  DATES.forEach((d,i)=>{ html += '<th colspan="3">' + d + '(' + DOW[i] + ')</th>'; });
+  html += '</tr><tr class="sub-row">';
+  DATES.forEach(()=>{ html += '<th>目標</th><th>実績</th><th>差異</th>'; });
+  html += '</tr></thead><tbody>';
+
+  CATS.forEach(cat=>{
+    html += '<tr data-cat="' + cat + '"><td class="cat-cell">' + cat + '</td>';
+    DATES.forEach((d,i)=>{
+      const t = TARGETS[cat][i];
+      const a = actuals[cat][i];
+      const diff = (a===null || a===undefined || a==="") ? null : (Number(a)-t);
+      html += '<td class="tgt">' + t + '</td>';
+      html += '<td><input class="act-input" type="number" min="0" inputmode="numeric" ' +
+              'data-cat="' + cat + '" data-idx="' + i + '" value="' + (a===null||a===undefined?'':a) + '" placeholder="-"></td>';
+      html += '<td class="diff ' + (diff===null?'':(diff>=0?'pos':'neg')) + '">' + (diff===null?'—':fmtDiff(diff)) + '</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '<tr class="total-row"><td class="cat-cell">商材ALL（合計）</td>';
+  DATES.forEach((d,i)=>{
+    const t = rowsForTotal[i];
+    const a = actualsForTotal[i];
+    const anyEntered = CATS.some(c => actuals[c][i]!==null && actuals[c][i]!==undefined && actuals[c][i]!=="");
+    const diff = anyEntered ? (a-t) : null;
+    html += '<td class="tgt summary-cell">' + t + '</td>';
+    html += '<td class="summary-cell">' + (anyEntered? a : '—') + '</td>';
+    html += '<td class="diff summary-cell ' + (diff===null?'':(diff>=0?'pos':'neg')) + '">' + (diff===null?'—':fmtDiff(diff)) + '</td>';
+  });
+  html += '</tr></tbody>';
+
+  table.innerHTML = html;
+
+  table.querySelectorAll(".act-input").forEach(inp=>{
+    inp.addEventListener("change", onActualChange);
+  });
+}
+
+function onActualChange(e){
+  const cat = e.target.dataset.cat;
+  const idx = Number(e.target.dataset.idx);
+  const raw = e.target.value;
+  const val = raw === "" ? null : Math.max(0, parseInt(raw,10) || 0);
+  actuals[cat][idx] = val;
+  render();
+  persist();
+}
+
+document.getElementById("syncBadge").addEventListener("click", async ()=>{
+  await loadActuals();
+  render();
+});
+
+(async function init(){
+  await loadActuals();
+  render();
+})();
+</script>
+</body>
+</html>
