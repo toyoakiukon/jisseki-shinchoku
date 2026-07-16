@@ -103,24 +103,28 @@
   tbody tr.total-row{
     background:var(--total-bg-soft);
     font-weight:800;
-    border-top:3px solid var(--total-bg);
-    box-shadow:inset 0 2px 0 var(--total-bg);
+    border-top:4px solid var(--total-bg);
+  }
+  tbody tr.total-row td{
+    padding:12px 4px;
   }
   tbody tr.total-row td.cat-cell{
     background:var(--total-bg);
     color:#fff;
-    font-size:14px;
-    letter-spacing:.02em;
+    font-size:15px;
+    letter-spacing:.03em;
+    padding:12px 12px;
   }
   tbody tr.total-row td.summary-cell{
-    font-size:15px;
-    font-weight:800;
+    font-size:18px;
+    font-weight:900;
     color:var(--total-bg);
     background:var(--total-bg-soft);
   }
   tbody tr.total-row td.tgt.summary-cell{
-    color:var(--ink);
+    color:var(--ink-soft);
     font-weight:700;
+    font-size:15px;
   }
   tbody tr.total-row td.diff.summary-cell.pos{color:var(--good);}
   tbody tr.total-row td.diff.summary-cell.neg{color:var(--bad);}
@@ -141,8 +145,6 @@
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);padding:10px 14px;border-top:1px solid var(--line);}
   .legend span{display:inline-flex;align-items:center;gap:5px;}
   .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
-
-  .footer-note{font-size:11.5px;color:var(--ink-soft);text-align:right;margin-top:6px;}
 
   @media (max-width:640px){
     header.top h1{font-size:17px;}
@@ -178,7 +180,6 @@
       <span><span class="dot" style="background:#FFF176;border:1px solid #ddd"></span>実績入力欄（タップして入力）</span>
     </div>
   </div>
-  <div class="footer-note">実績を入力すると、店舗内の他の端末にも共有されます。</div>
 </div>
 
 <script>
