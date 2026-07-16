@@ -96,8 +96,31 @@
   }
   thead th.cat-head{background:var(--primary);color:#fff;z-index:3;border-right:2px solid rgba(255,255,255,.25);}
   tbody tr{border-top:1px solid var(--line);}
-  tbody tr.total-row{background:var(--primary-soft);font-weight:700;}
-  tbody tr.total-row td.cat-cell{background:var(--primary-soft);}
+
+  /* 商材ALL（合計）行を強調 */
+  tbody tr.total-row{
+    background:var(--primary);
+    font-weight:800;
+    border-top:3px solid var(--primary);
+    box-shadow:0 -1px 0 var(--primary) inset;
+  }
+  tbody tr.total-row td{
+    color:#fff;
+    padding:12px 4px;
+    font-size:15px;
+  }
+  tbody tr.total-row td.cat-cell{
+    background:var(--primary);
+    color:#fff;
+    font-size:14.5px;
+    font-weight:800;
+    border-right:2px solid rgba(255,255,255,.35);
+  }
+  tbody tr.total-row td.tgt{color:#CFE0EE;}
+  tbody tr.total-row td.diff.pos{color:#8CE99A;}
+  tbody tr.total-row td.diff.neg{color:#FFB3A7;}
+  tbody tr.total-row td.summary-cell{background:transparent;}
+
   td{padding:6px 4px;text-align:center;}
   td.tgt{color:var(--ink-soft);font-variant-numeric:tabular-nums;}
   td.diff{font-weight:700;font-variant-numeric:tabular-nums;}
@@ -155,20 +178,10 @@
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════
-   クラウド同期設定（JSONBin.io）
-   端末間でデータを共有するには、下の3つを設定してください。
-   1. https://jsonbin.io で無料アカウント作成
-   2. 「CREATE BIN」で中身を {"_init":"ok"} にして保存 → Bin ID をコピー
-   3. 「API KEYS」から Master Key（または対象ビンに read/update
-      権限を付けた Access Key）をコピー
-   4. 下の3行を書き換える
-   設定するまでは localStorage（この端末だけ）で動作します。
-═══════════════════════════════════════════════════════ */
 const CLOUD_ENABLED   = true;
 const JSONBIN_BIN_ID   = "6a589928da38895dfe64f7bc";
 const JSONBIN_KEY      = "$2a$10$kb4606NT2s7sIqqcPuGTGefZ2uIaVqlXUD.T25aB0gi4KRdO5Ir22";
-const CLOUD_KEY_HEADER = "X-Master-Key";            // Access Keyの場合は "X-Access-Key"
+const CLOUD_KEY_HEADER = "X-Master-Key";
 
 const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_BIN_ID;
 const LOCAL_KEY = "jisseki-actuals-v1";
@@ -184,7 +197,6 @@ const TARGETS = {
   "でんき":  [1,1,1,1,1,4,4,3],
 };
 
-// 初期実績（手書きメモより）。以降はローカル/クラウドの値が優先されます。
 const SEED_ACTUALS = {
   "SB総販": [2,3,0,null,null,null,null,null],
   "YM総販": [2,2,3,null,null,null,null,null],
@@ -212,21 +224,18 @@ function fillMissing(obj){
   return obj;
 }
 
-/* ───────────── 同期バッジ ───────────── */
 function setBadge(state, text){
   const el = document.getElementById("syncBadge");
   el.className = "sync-badge " + state;
   el.textContent = text;
 }
 
-/* ───────────── 読込 ───────────── */
 async function loadActuals(){
-  // まずローカルの値を仮に読んでおく（クラウド取得が遅い/失敗しても画面が出せるように）
   let local = null;
   try{
     const raw = localStorage.getItem(LOCAL_KEY);
     if(raw) local = JSON.parse(raw);
-  }catch(e){ /* noop */ }
+  }catch(e){ }
 
   if(!CLOUD_ENABLED){
     setBadge("off", "💾 この端末のみ");
@@ -257,7 +266,6 @@ async function loadActuals(){
   }
 }
 
-/* ───────────── 保存 ───────────── */
 function persist(){
   localStorage.setItem(LOCAL_KEY, JSON.stringify(actuals));
   if(!CLOUD_ENABLED) return;
@@ -283,7 +291,6 @@ function persist(){
   }, 800);
 }
 
-/* ───────────── 描画 ───────────── */
 function render(){
   renderCards();
   renderTable();
