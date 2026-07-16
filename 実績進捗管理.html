@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3F黒物 実績進捗管理</title>
+<style>
+  :root{
+    --bg:#F4F6F8;
+    --surface:#FFFFFF;
+    --ink:#1B2430;
+    --ink-soft:#5B6472;
+    --line:#E1E5EA;
+    --primary:#1F4E78;
+    --primary-soft:#E7EEF4;
+    --accent:#C0392B; /* SoftBank/YM系レッド寄りアクセント */
+    --good:#1E7B34;
+    --good-soft:#E7F3EA;
+    --bad:#C0392B;
+    --bad-soft:#FBEAE8;
+    --warn:#B8790A;
+    --warn-soft:#FBF1DE;
+    --input-bg:#FFFDE7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px;}
+
+  header.top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:12px;flex-wrap:wrap;margin-bottom:18px;
+  }
+  header.top h1{
+    font-size:20px;font-weight:800;letter-spacing:.01em;margin:0 0 4px;
+    color:var(--primary);
+  }
+  header.top .sub{font-size:12.5px;color:var(--ink-soft);}
+  .today-pill{
+    background:var(--primary);color:#fff;font-size:12px;font-weight:700;
+    padding:6px 14px;border-radius:999px;white-space:nowrap;
+  }
+
+  /* summary cards */
+  .cards{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:10px;margin-bottom:22px;
+  }
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;position:relative;overflow:hidden;
+  }
+  .card.total{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset;}
+  .card .cat-name{font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+  .card .rate{font-size:26px;font-weight:800;line-height:1;margin-bottom:2px;}
+  .card .fig{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
+  .bar-track{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:8px;}
+  .bar-fill{height:100%;border-radius:999px;transition:width .3s ease;}
+  .card .remain{font-size:12.5px;font-weight:600;}
+  .status-good{color:var(--good);}
+  .status-bad{color:var(--bad);}
+  .status-warn{color:var(--warn);}
+
+  /* table */
+  .table-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin-bottom:20px;
+  }
+  .table-scroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:960px;font-size:13px;}
+  thead tr.date-row th{
+    background:var(--primary);color:#fff;font-weight:700;font-size:12.5px;
+    padding:8px 4px;text-align:center;border-left:1px solid rgba(255,255,255,.15);
+  }
+  thead tr.sub-row th{
+    background:#2E608A;color:#EAF1F7;font-weight:600;font-size:11px;
+    padding:5px 4px;text-align:center;border-left:1px solid rgba(255,255,255,.12);
+  }
+  th.cat-head, td.cat-cell{
+    position:sticky;left:0;background:var(--surface);z-index:2;
+    text-align:left;padding:10px 12px;font-weight:700;font-size:13px;
+    border-right:2px solid var(--line);white-space:nowrap;
+  }
+  thead th.cat-head{background:var(--primary);color:#fff;z-index:3;border-right:2px solid rgba(255,255,255,.25);}
+  tbody tr{border-top:1px solid var(--line);}
+  tbody tr.total-row{background:var(--primary-soft);font-weight:700;}
+  tbody tr.total-row td.cat-cell{background:var(--primary-soft);}
+  td{padding:6px 4px;text-align:center;}
+  td.tgt{color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  td.diff{font-weight:700;font-variant-numeric:tabular-nums;}
+  td.diff.pos{color:var(--good);}
+  td.diff.neg{color:var(--bad);}
+  input.act-input{
+    width:44px;padding:4px 2px;text-align:center;border:1px solid var(--line);
+    border-radius:6px;background:var(--input-bg);font-size:13px;font-variant-numeric:tabular-nums;
+    font-family:inherit;color:var(--ink);
+  }
+  input.act-input:focus{outline:2px solid var(--primary);outline-offset:1px;}
+  td.summary-cell{font-weight:700;background:#FAFBFC;}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);padding:10px 14px;border-top:1px solid var(--line);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .footer-note{font-size:11.5px;color:var(--ink-soft);text-align:right;margin-top:6px;}
+  .save-flash{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:8px 18px;border-radius:999px;font-size:12.5px;
+    opacity:0;transition:all .25s ease;pointer-events:none;
+  }
+  .save-flash.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:640px){
+    header.top h1{font-size:17px;}
+    .cards{grid-template-columns:repeat(2,1fr);}
+    .card .rate{font-size:21px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>3F黒物（イベント込）実績進捗管理</h1>
+      <div class="sub">SB総販・YM総販・BB・でんき　7/13(月)〜7/20(月・祝)</div>
+    </div>
+    <div class="today-pill" id="todayPill">本日 7/16</div>
+  </header>
+
+  <div class="cards" id="cardsRoot"></div>
+
+  <div class="table-card">
+    <div class="table-scroll">
+      <table id="mainTable"></table>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--good)"></span>目標超過</span>
+      <span><span class="dot" style="background:var(--bad)"></span>目標未達</span>
+      <span><span class="dot" style="background:#FFF176;border:1px solid #ddd"></span>実績入力欄（タップして入力）</span>
+    </div>
+  </div>
+  <div class="footer-note">実績はこの画面から入力すると、店舗内の他の端末にも共有されます。</div>
+</div>
+
+<div class="save-flash" id="saveFlash">保存しました</div>
+
+<script>
+const DATES = ["7/13","7/14","7/15","7/16","7/17","7/18","7/19","7/20"];
+const DOW   = ["月","火","水","木","金","土","日","月・祝"];
+const CATS  = ["SB総販","YM総販","BB","でんき"];
+
+const TARGETS = {
+  "SB総販": [4,3,3,3,5,11,11,10],
+  "YM総販": [5,4,4,4,5,11,12,10],
+  "BB":     [3,2,2,2,3,5,6,6],
+  "でんき":  [1,1,1,1,1,4,4,3],
+};
+
+// 初期実績（手書きメモより）。以降はストレージの値が優先されます。
+const SEED_ACTUALS = {
+  "SB総販": [2,3,0,null,null,null,null,null],
+  "YM総販": [2,2,3,null,null,null,null,null],
+  "BB":     [3,1,0,null,null,null,null,null],
+  "でんき":  [2,2,0,null,null,null,null,null],
+};
+
+const STORAGE_KEY = "jisseki-actuals-v1";
+let actuals = null;
+
+function sum(arr){ return arr.reduce((a,b)=>a+(Number(b)||0),0); }
+function targetTotal(cat){ return sum(TARGETS[cat]); }
+function actualTotal(cat){ return sum(actuals[cat]); }
+function totalRowTargets(){ return DATES.map((_,i)=> CATS.reduce((s,c)=>s+TARGETS[c][i],0)); }
+function totalRowActuals(){ return DATES.map((_,i)=> CATS.reduce((s,c)=>s+(Number(actuals[c][i])||0),0)); }
+
+function fmtDiff(v){
+  if(v>0) return "+"+v;
+  return String(v);
+}
+
+function statusColor(rate){
+  if(rate >= 1) return "good";
+  if(rate >= 0.7) return "warn";
+  return "bad";
+}
+
+function render(){
+  renderCards();
+  renderTable();
+}
+
+function renderCards(){
+  const root = document.getElementById("cardsRoot");
+  root.innerHTML = "";
+  const allCats = [...CATS, "商材ALL"];
+  allCats.forEach(cat=>{
+    let budget, actTotal;
+    if(cat === "商材ALL"){
+      budget = sum(totalRowTargets());
+      actTotal = sum(totalRowActuals());
+    } else {
+      budget = targetTotal(cat);
+      actTotal = actualTotal(cat);
+    }
+    const rate = budget>0 ? actTotal/budget : 0;
+    const remain = budget - actTotal;
+    const st = statusColor(rate);
+    const stColor = st==="good" ? "var(--good)" : st==="warn" ? "var(--warn)" : "var(--bad)";
+
+    const card = document.createElement("div");
+    card.className = "card" + (cat==="商材ALL" ? " total" : "");
+    card.innerHTML = `
+      <div class="cat-name">${cat}</div>
+      <div class="rate" style="color:${stColor}">${(rate*100).toFixed(1)}%</div>
+      <div class="fig">実績 ${actTotal} / 予算 ${budget}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.min(rate*100,100)}%;background:${stColor}"></div></div>
+      <div class="remain ${remain>0?'status-bad':'status-good'}">${remain>0 ? `残り必要 ${remain}件` : `目標達成 (+${-remain}件)`}</div>
+    `;
+    root.appendChild(card);
+  });
+}
+
+function renderTable(){
+  const table = document.getElementById("mainTable");
+  const rowsForTotal = totalRowTargets();
+  const actualsForTotal = totalRowActuals();
+
+  let html = "";
+  html += `<thead>
+    <tr class="date-row">
+      <th class="cat-head" rowspan="2">カテゴリ</th>
+      ${DATES.map((d,i)=>`<th colspan="3">${d}(${DOW[i]})</th>`).join("")}
+    </tr>
+    <tr class="sub-row">
+      ${DATES.map(()=>`<th>目標</th><th>実績</th><th>差異</th>`).join("")}
+    </tr>
+  </thead>`;
+
+  html += "<tbody>";
+  CATS.forEach(cat=>{
+    html += `<tr data-cat="${cat}">`;
+    html += `<td class="cat-cell">${cat}</td>`;
+    DATES.forEach((d,i)=>{
+      const t = TARGETS[cat][i];
+      const a = actuals[cat][i];
+      const diff = (a===null || a===undefined || a==="") ? null : (Number(a)-t);
+      html += `<td class="tgt">${t}</td>`;
+      html += `<td><input class="act-input" type="number" min="0" inputmode="numeric"
+                 data-cat="${cat}" data-idx="${i}" value="${a===null||a===undefined?'':a}" placeholder="-"></td>`;
+      html += `<td class="diff ${diff===null?'':(diff>=0?'pos':'neg')}">${diff===null?'—':fmtDiff(diff)}</td>`;
+    });
+    html += `</tr>`;
+  });
+
+  // 商材ALL total row
+  html += `<tr class="total-row">`;
+  html += `<td class="cat-cell">商材ALL（合計）</td>`;
+  DATES.forEach((d,i)=>{
+    const t = rowsForTotal[i];
+    const a = actualsForTotal[i];
+    const anyEntered = CATS.some(c => actuals[c][i]!==null && actuals[c][i]!==undefined && actuals[c][i]!=="");
+    const diff = anyEntered ? (a-t) : null;
+    html += `<td class="tgt summary-cell">${t}</td>`;
+    html += `<td class="summary-cell">${anyEntered? a : '—'}</td>`;
+    html += `<td class="diff summary-cell ${diff===null?'':(diff>=0?'pos':'neg')}">${diff===null?'—':fmtDiff(diff)}</td>`;
+  });
+  html += `</tr>`;
+  html += "</tbody>";
+
+  table.innerHTML = html;
+
+  table.querySelectorAll(".act-input").forEach(inp=>{
+    inp.addEventListener("change", onActualChange);
+  });
+}
+
+let saveTimer = null;
+async function onActualChange(e){
+  const cat = e.target.dataset.cat;
+  const idx = Number(e.target.dataset.idx);
+  const raw = e.target.value;
+  const val = raw === "" ? null : Math.max(0, parseInt(raw,10) || 0);
+  actuals[cat][idx] = val;
+  render();
+  await persist();
+}
+
+async function persist(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(actuals), true);
+    flashSave();
+  }catch(err){
+    console.error("保存に失敗しました", err);
+  }
+}
+
+function flashSave(){
+  const el = document.getElementById("saveFlash");
+  el.classList.add("show");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=> el.classList.remove("show"), 1200);
+}
+
+async function loadActuals(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value){
+      actuals = JSON.parse(res.value);
+      // 新カテゴリ追加などに備えて欠けているキーを補完
+      CATS.forEach(c=>{
+        if(!actuals[c]) actuals[c] = [...SEED_ACTUALS[c]];
+        while(actuals[c].length < DATES.length) actuals[c].push(null);
+      });
+      return;
+    }
+  }catch(err){
+    // キーが存在しない場合はここに来る
+  }
+  actuals = JSON.parse(JSON.stringify(SEED_ACTUALS));
+  await window.storage.set(STORAGE_KEY, JSON.stringify(actuals), true);
+}
+
+(async function init(){
+  await loadActuals();
+  render();
+})();
+</script>
+</body>
+</html>
